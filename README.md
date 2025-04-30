@@ -49,13 +49,18 @@ fn main() {
 
 ## Command-line Usage
 
+To get started, clone this repository:
+
+```sh
+git clone https://github.com/sanjaysingh13/csv_polars_cleaner.git
+cd csv_polars_cleaner
+```
+
 This crate includes a simple CLI for quickly checking CSV parsing on your system:
 
 ```sh
 cargo run -- path/to/your.csv
 ```
-
----
 
 For more details, see the source code.
 
