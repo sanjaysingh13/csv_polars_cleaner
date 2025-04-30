@@ -1,0 +1,7 @@
+/target
+# Ignore local test binary
+# Ignore Cascade/AI memory file
+codebase_memory.md
+
+# Ignore generated documentation
+/target/doc
