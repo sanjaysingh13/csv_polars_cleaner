@@ -1,4 +1,4 @@
-use anyhow::{Result};
+use anyhow::Result;
 
 /// Find start and end line indices of the box of structured data
 pub fn detect_data_bounds(lines: &[&str], delimiter: char) -> Result<(usize, usize)> {
@@ -16,7 +16,9 @@ pub fn detect_data_bounds(lines: &[&str], delimiter: char) -> Result<(usize, usi
         }
     }
     if col_counts.is_empty() {
-        return Err(anyhow::anyhow!("Could not find any data lines with delimiter"));
+        return Err(anyhow::anyhow!(
+            "Could not find any data lines with delimiter"
+        ));
     }
 
     // Find the mode of column counts
@@ -33,11 +35,19 @@ pub fn detect_data_bounds(lines: &[&str], delimiter: char) -> Result<(usize, usi
     // Find first and last line with mode_col_count
     let first = match col_counts.iter().find(|&&(_, c)| c == mode_col_count) {
         Some(&(idx, _)) => idx,
-        None => return Err(anyhow::anyhow!("Could not find first line with mode column count")),
+        None => {
+            return Err(anyhow::anyhow!(
+                "Could not find first line with mode column count"
+            ));
+        }
     };
     let last = match col_counts.iter().rfind(|&&(_, c)| c == mode_col_count) {
         Some(&(idx, _)) => idx,
-        None => return Err(anyhow::anyhow!("Could not find last line with mode column count")),
+        None => {
+            return Err(anyhow::anyhow!(
+                "Could not find last line with mode column count"
+            ));
+        }
     };
 
     if first > last {
@@ -60,7 +70,7 @@ mod tests {
             "1,2,3",
             "4,5,6",
             "",
-            "# Another comment"
+            "# Another comment",
         ];
         let (start, end) = detect_data_bounds(&lines, ',').unwrap();
         assert_eq!(start, 2);
@@ -77,7 +87,7 @@ mod tests {
             "",
             "4,5,6",
             "# Another comment",
-            ""
+            "",
         ];
         let (start, end) = detect_data_bounds(&lines, ',').unwrap();
         assert_eq!(start, 2);

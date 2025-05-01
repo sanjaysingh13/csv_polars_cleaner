@@ -2,4 +2,4 @@
 /// This ensures consistent line endings regardless of the input format
 pub fn normalize_line_endings(input: &str) -> String {
     input.replace("\r\n", "\n").replace('\r', "\n")
-} 
+}

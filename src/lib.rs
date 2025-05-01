@@ -7,6 +7,32 @@
 //! - Detects the real data region using the mode of column counts.
 //! - Returns a Polars DataFrame for further analysis.
 //!
+//! ## Examples
+//!
+//! ### Parse a single CSV file
+//!
+//! ```no_run
+//! use csv_polars_cleaner::parse_file;
+//! // This example will fail unless "data.csv" exists.
+//! let df = parse_file("data.csv", b',');
+//! match df {
+//!     Ok(df) => println!("Headers: {:?}", df.get_column_names()),
+//!     Err(e) => eprintln!("Failed to parse: {e}"),
+//! }
+//! ```
+//!
+//! ### Parse all CSV files in a folder recursively
+//!
+//! ```no_run
+//! use csv_polars_cleaner::parse_folder;
+//! // This example will fail unless the folder exists and contains .csv files.
+//! let dfs = parse_folder("data/", b',');
+//! match dfs {
+//!     Ok(dfs) => println!("Parsed {} files", dfs.len()),
+//!     Err(e) => eprintln!("Failed to parse folder: {e}"),
+//! }
+//! ```
+//!
 //! ## Example
 //!
 //! ```no_run
@@ -19,12 +45,12 @@
 //! }
 //! ```
 
-pub mod preprocessor;
 pub mod detector;
 pub mod parser;
+pub mod preprocessor;
 
-use polars::prelude::*;
 use anyhow::Result;
+use polars::prelude::*;
 use std::fs;
 use walkdir::WalkDir;
 
@@ -81,11 +107,10 @@ pub fn parse_file(path: &str, delimiter: u8) -> Result<DataFrame> {
 /// }
 /// ```
 pub fn parse_folder(root_folder: &str, delimiter: u8) -> Result<Vec<DataFrame>> {
-    
     let mut dfs = vec![];
     for entry in WalkDir::new(root_folder).into_iter().filter_map(|e| e.ok()) {
         let path = entry.path();
-        if path.is_file() && path.extension().map_or(false, |ext| ext == "csv") {
+        if path.is_file() && path.extension().is_some_and(|ext| ext == "csv") {
             match parse_file(path.to_str().unwrap(), delimiter) {
                 Ok(df) => dfs.push(df),
                 Err(e) => eprintln!("Failed to parse {}: {:?}", path.display(), e),

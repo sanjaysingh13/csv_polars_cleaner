@@ -1,6 +1,6 @@
-use polars::prelude::*;
+use anyhow::{Context, Result};
 use polars::datatypes::DataType;
-use anyhow::{Result, Context};
+use polars::prelude::*;
 use std::io::Cursor;
 
 /// Return Polars DataFrame using box logic, preserving internal newlines
@@ -17,28 +17,33 @@ pub fn parse_boxed_data(raw: &str, delimiter: u8) -> Result<DataFrame> {
         .context("Could not detect valid data box")?;
 
     // Preprocess the boxed data: trim whitespace from each field and repair malformed rows
-    let header = lines[start].split(delimiter as char)
+    let header = lines[start]
+        .split(delimiter as char)
         .map(|s| s.trim())
         .collect::<Vec<_>>();
     let num_cols = header.len();
 
     let mut processed_lines = vec![header.join(&String::from(delimiter as char))];
-    for line in &lines[start+1..=end] {
+    for line in &lines[start + 1..=end] {
         if line.trim().is_empty() || line.trim().starts_with('#') {
             continue;
         }
-        let mut fields: Vec<String> = line.split(delimiter as char)
+        let mut fields: Vec<String> = line
+            .split(delimiter as char)
             .map(|s| s.trim().to_string())
             .collect();
         // If not enough fields, try splitting by whitespace
         if fields.len() < num_cols {
-            let ws_fields: Vec<String> = line.split_whitespace().map(|s| s.trim().to_string()).collect();
+            let ws_fields: Vec<String> = line
+                .split_whitespace()
+                .map(|s| s.trim().to_string())
+                .collect();
             if ws_fields.len() == num_cols {
                 fields = ws_fields;
             } else if ws_fields.len() > num_cols && num_cols > 1 {
                 // Merge trailing fields into the last column
-                let mut merged: Vec<String> = ws_fields[..num_cols-1].to_vec();
-                merged.push(ws_fields[num_cols-1..].join(" "));
+                let mut merged: Vec<String> = ws_fields[..num_cols - 1].to_vec();
+                merged.push(ws_fields[num_cols - 1..].join(" "));
                 fields = merged;
             }
         }
@@ -67,12 +72,11 @@ pub fn parse_boxed_data(raw: &str, delimiter: u8) -> Result<DataFrame> {
         .with_has_header(true)
         .with_skip_rows(0);
 
-    let df = read_options
-        .into_reader_with_file_handle(cursor)
-        .finish()?;
+    let df = read_options.into_reader_with_file_handle(cursor).finish()?;
 
     // Convert all columns to String (string)
-    let df = df.get_columns()
+    let df = df
+        .get_columns()
         .iter()
         .map(|s| s.cast(&DataType::String))
         .collect::<polars::prelude::PolarsResult<Vec<_>>>()?;
@@ -91,7 +95,8 @@ mod tests {
             "name" => &["Alice", "Bob",  "Charlie",],
             "age" => &["30", "25", "35"],
             "city" => &["New York", "London", "Paris"]
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     #[test]
@@ -109,8 +114,11 @@ Charlie,35,Paris
 # End of file"#;
 
         let result = parse_boxed_data(input, b',');
-        assert!(result.is_ok(), "Failed to parse CSV with mixed line endings");
-        
+        assert!(
+            result.is_ok(),
+            "Failed to parse CSV with mixed line endings"
+        );
+
         let df = result.unwrap();
         let expected = create_expected_df();
         assert!(df.equals(&expected), "DataFrame content mismatch");
@@ -126,7 +134,7 @@ Charlie,35,Paris
 
         let result = parse_boxed_data(input, b',');
         assert!(result.is_ok(), "Failed to parse CSV with extra whitespace");
-        
+
         let df = result.unwrap();
         let expected = create_expected_df();
         assert!(df.equals(&expected), "DataFrame content mismatch");
@@ -149,7 +157,7 @@ Charlie,35,Paris
 
         let result = parse_boxed_data(input, b',');
         assert!(result.is_ok(), "Failed to parse CSV with empty lines");
-        
+
         let df = result.unwrap();
         let expected = create_expected_df();
         if !df.equals(&expected) {
@@ -169,9 +177,9 @@ Charlie	35	Paris"#;
 
         let result = parse_boxed_data(input, b'\t');
         assert!(result.is_ok(), "Failed to parse CSV with tab delimiter");
-        
+
         let df = result.unwrap();
         let expected = create_expected_df();
         assert!(df.equals(&expected), "DataFrame content mismatch");
     }
-} 
+}
