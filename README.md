@@ -31,17 +31,21 @@ csv_polars_cleaner = "<version>"
 
 Example usage:
 ```rust
-use csv_polars_cleaner::parse_file;
+use csv_polars_cleaner::parse_folder;
 
 fn main() {
-    let path = "path/to/your.csv";
-    match parse_file(path, b',') {
-        Ok(df) => {
-            println!("Headers: {:?}", df.get_column_names());
-            println!("Number of rows: {}", df.height());
+    let folder = "path/to/your/folder";
+    match parse_folder(folder, b',') {
+        Ok(dfs) => {
+            println!("Parsed {} files", dfs.len());
+            for (i, df) in dfs.iter().enumerate() {
+                println!("\nFile {}:", i + 1);
+                println!("Headers: {:?}", df.get_column_names());
+                println!("Number of rows: {}", df.height());
+            }
         }
         Err(e) => {
-            eprintln!("Failed to parse file: {:?}", e);
+            eprintln!("Failed to parse folder: {:?}", e);
         }
     }
 }
@@ -59,8 +63,10 @@ cd csv_polars_cleaner
 This crate includes a simple CLI for quickly checking CSV parsing on your system:
 
 ```sh
-cargo run -- path/to/your.csv
+cargo run -- path/to/your/folder
 ```
+
+This will recursively parse all .csv files in the specified folder and its subfolders.
 
 For more details, see the source code.
 

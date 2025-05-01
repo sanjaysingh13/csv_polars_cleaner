@@ -26,6 +26,7 @@ pub mod parser;
 use polars::prelude::*;
 use anyhow::Result;
 use std::fs;
+use walkdir::WalkDir;
 
 /// Parse CSV data from a string slice and return a Polars DataFrame.
 ///
@@ -58,13 +59,13 @@ pub fn parse_file(path: &str, delimiter: u8) -> Result<DataFrame> {
     parser::parse_boxed_data(&content, delimiter)
 }
 
-/// Parse all CSV files in a folder into a vector of Polars DataFrames.
+/// Parse all CSV files in a folder and its subfolders into a vector of Polars DataFrames.
 ///
-/// This function uses a glob pattern to find files, parses each file,
-/// and returns a vector of DataFrames. Errors in individual files are reported to stderr.
+/// This function recursively searches for .csv files in the root folder,
+/// parses each file, and returns a vector of DataFrames. Errors in individual files are reported to stderr.
 ///
 /// # Arguments
-/// * `glob_path` - Glob pattern for file selection (e.g., "data/*.csv").
+/// * `root_folder` - Path to the root folder to search for .csv files (e.g., "data/").
 /// * `delimiter` - The delimiter as a byte (e.g., `b','`).
 ///
 /// # Returns
@@ -73,19 +74,22 @@ pub fn parse_file(path: &str, delimiter: u8) -> Result<DataFrame> {
 /// # Example
 /// ```no_run
 /// use csv_polars_cleaner::parse_folder;
-/// let dfs = parse_folder("data/*.csv", b',');
+/// let dfs = parse_folder("data/", b',');
 /// match dfs {
 ///     Ok(dfs) => println!("Parsed {} files", dfs.len()),
 ///     Err(e) => eprintln!("Failed to parse folder: {e}"),
 /// }
 /// ```
-pub fn parse_folder(glob_path: &str, delimiter: u8) -> Result<Vec<DataFrame>> {
+pub fn parse_folder(root_folder: &str, delimiter: u8) -> Result<Vec<DataFrame>> {
+    
     let mut dfs = vec![];
-    for entry in glob::glob(glob_path)? {
-        let path = entry?;
-        match parse_file(path.to_str().unwrap(), delimiter) {
-            Ok(df) => dfs.push(df),
-            Err(e) => eprintln!("Failed to parse {}: {:?}", path.display(), e),
+    for entry in WalkDir::new(root_folder).into_iter().filter_map(|e| e.ok()) {
+        let path = entry.path();
+        if path.is_file() && path.extension().map_or(false, |ext| ext == "csv") {
+            match parse_file(path.to_str().unwrap(), delimiter) {
+                Ok(df) => dfs.push(df),
+                Err(e) => eprintln!("Failed to parse {}: {:?}", path.display(), e),
+            }
         }
     }
     Ok(dfs)

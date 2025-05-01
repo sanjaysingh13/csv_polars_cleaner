@@ -17,3 +17,4 @@ serde = { version = "1.0", features = ["derive"] }
 csv = "1.3"           # Optional: raw CSV reading
 rayon = "1.10"         # Optional: parallel folder processing
 log = "0.4"           # Optional: diagnostics
+walkdir = "2.4"
