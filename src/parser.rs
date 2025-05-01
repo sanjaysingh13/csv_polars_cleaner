@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use polars::datatypes::DataType;
 use polars::prelude::*;
+use std::borrow::Cow;
 use std::io::Cursor;
 
 /// Return Polars DataFrame using box logic, preserving internal newlines
@@ -81,6 +82,38 @@ pub fn parse_boxed_data(raw: &str, delimiter: u8) -> Result<DataFrame> {
         .map(|s| s.cast(&DataType::String))
         .collect::<polars::prelude::PolarsResult<Vec<_>>>()?;
     let df = DataFrame::new(df)?;
+
+    // Clean: Remove matching leading/trailing quotes from all string columns
+    let mut cleaned_cols = Vec::with_capacity(df.width());
+    for s in df.get_columns() {
+        if s.dtype() == &DataType::String {
+            let cleaned = s.str()
+                .unwrap()
+                .apply(|val: Option<&str>| {
+                    val.map(|v| {
+                        let bytes = v.as_bytes();
+                        // Strip single quotes if present at both ends
+                        if bytes.len() >= 2 && bytes[0] == b'\'' && bytes[bytes.len()-1] == b'\'' {
+                            let stripped = &v[1..v.len()-1];
+                            if stripped.eq_ignore_ascii_case("null") {
+                                return Cow::Borrowed("");
+                            }
+                            return Cow::Owned(stripped.to_string());
+                        }
+                        if v.eq_ignore_ascii_case("null") {
+                            return Cow::Borrowed("");
+                        }
+                        Cow::Borrowed(v)
+                    })
+                })
+                .into_series()
+                .into();
+            cleaned_cols.push(cleaned);
+        } else {
+            cleaned_cols.push(s.clone().into());
+        }
+    }
+    let df = DataFrame::new(cleaned_cols)?;
 
     Ok(df)
 }

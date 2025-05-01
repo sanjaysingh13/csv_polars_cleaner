@@ -1,7 +1,7 @@
 [package]
 name = "csv_polars_cleaner"
 authors = ["Sanjay Singh <sanjaysingh13@gmail.com>"]
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
 description = "A robust Rust library for extracting and cleaning tabular data from messy CSV files using Polars."
 license = "MIT OR Apache-2.0"
